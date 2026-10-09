@@ -24,7 +24,7 @@ def _get_client() -> ElevenLabs:
     return ElevenLabs(api_key=api_key)
 
 
-def speak(text: str) -> None:
+def speak(text: str) -> float:
     client = _get_client()
 
     logger.info("Sending text to ElevenLabs TTS (%s, voice %s)...", TTS_MODEL_ID, TTS_VOICE_ID)
@@ -36,12 +36,14 @@ def speak(text: str) -> None:
         output_format=f"pcm_{SAMPLE_RATE}",
     )
     audio_bytes = b"".join(audio_chunks)
-    elapsed_ms = (time.perf_counter() - start) * 1000
-    logger.info("Received %d bytes of audio in %.0fms. Playing...", len(audio_bytes), elapsed_ms)
+    time_to_first_audio_ms = (time.perf_counter() - start) * 1000
+    logger.info("Received %d bytes of audio in %.0fms. Playing...", len(audio_bytes), time_to_first_audio_ms)
 
     samples = np.frombuffer(audio_bytes, dtype=np.int16)
     sd.play(samples, samplerate=SAMPLE_RATE)
     sd.wait()
+
+    return time_to_first_audio_ms
 
 
 def list_arabic_voices() -> None:
