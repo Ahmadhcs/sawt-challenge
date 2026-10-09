@@ -2,6 +2,7 @@ import io
 import logging
 import math
 import os
+import time
 import wave
 from dataclasses import dataclass
 from pathlib import Path
@@ -88,9 +89,12 @@ def transcribe(audio_bytes: bytes, keyterms: list[str] | None = None) -> Transcr
         kwargs["keyterms"] = keyterms
 
     logger.info("Sending %d bytes of audio to ElevenLabs (scribe_v2, ar)...", len(audio_bytes))
+    start = time.perf_counter()
     response = client.speech_to_text.convert(**kwargs)
+    elapsed_ms = (time.perf_counter() - start) * 1000
     logger.info(
-        "Got response: language=%s (%.0f%% confidence), %d word entries.",
+        "Got response in %.0fms: language=%s (%.0f%% confidence), %d word entries.",
+        elapsed_ms,
         response.language_code,
         response.language_probability * 100,
         len(response.words),

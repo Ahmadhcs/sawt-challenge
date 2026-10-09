@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import numpy as np
 import sounddevice as sd
@@ -27,6 +28,7 @@ def speak(text: str) -> None:
     client = _get_client()
 
     logger.info("Sending text to ElevenLabs TTS (%s, voice %s)...", TTS_MODEL_ID, TTS_VOICE_ID)
+    start = time.perf_counter()
     audio_chunks = client.text_to_speech.convert(
         text=text,
         voice_id=TTS_VOICE_ID,
@@ -34,7 +36,8 @@ def speak(text: str) -> None:
         output_format=f"pcm_{SAMPLE_RATE}",
     )
     audio_bytes = b"".join(audio_chunks)
-    logger.info("Received %d bytes of audio. Playing...", len(audio_bytes))
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    logger.info("Received %d bytes of audio in %.0fms. Playing...", len(audio_bytes), elapsed_ms)
 
     samples = np.frombuffer(audio_bytes, dtype=np.int16)
     sd.play(samples, samplerate=SAMPLE_RATE)
