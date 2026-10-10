@@ -4,27 +4,31 @@
     "name_ar": "العليا",
     "name_en": "Olaya",
     "city_ar": "الرياض",
-    "city_en": "Riyadh"
+    "city_en": "Riyadh",
+    "pickup_prep_minutes": 15
   },
   {
     "branch_id": "ruh_narjis",
     "name_ar": "النرجس",
     "name_en": "Narjis",
     "city_ar": "الرياض",
-    "city_en": "Riyadh"
+    "city_en": "Riyadh",
+    "pickup_prep_minutes": 12
   },
   {
     "branch_id": "ruh_malqa",
     "name_ar": "الملقا",
     "name_en": "Malqa",
     "city_ar": "الرياض",
-    "city_en": "Riyadh"
+    "city_en": "Riyadh",
+    "pickup_prep_minutes": 18
   },
   {
     "branch_id": "jed_rawdah",
     "name_ar": "الروضة",
     "name_en": "Rawdah",
     "city_ar": "جدة",
-    "city_en": "Jeddah"
+    "city_en": "Jeddah",
+    "pickup_prep_minutes": 15
   }
 ]

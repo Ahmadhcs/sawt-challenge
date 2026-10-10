@@ -19,6 +19,7 @@ class Branch:
     name_en: str
     city_ar: str
     city_en: str
+    pickup_prep_minutes: int
 
 
 @dataclass
