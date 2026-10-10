@@ -1,0 +1,146 @@
+[
+  {
+    "zone_id": "olaya",
+    "name_ar": "العليا",
+    "aliases": [
+      "عليا",
+      "Olaya",
+      "olaya"
+    ],
+    "branch_id": "ruh_olaya",
+    "delivery_fee_halalas": 500,
+    "eta_minutes": 20
+  },
+  {
+    "zone_id": "sulaimaniyah",
+    "name_ar": "السليمانية",
+    "aliases": [
+      "سليمانية",
+      "Sulaimaniyah",
+      "sulaimaniyah"
+    ],
+    "branch_id": "ruh_olaya",
+    "delivery_fee_halalas": 800,
+    "eta_minutes": 25
+  },
+  {
+    "zone_id": "murooj",
+    "name_ar": "المروج",
+    "aliases": [
+      "مروج",
+      "Murooj",
+      "murooj"
+    ],
+    "branch_id": "ruh_olaya",
+    "delivery_fee_halalas": 1000,
+    "eta_minutes": 30
+  },
+  {
+    "zone_id": "narjis",
+    "name_ar": "النرجس",
+    "aliases": [
+      "نرجس",
+      "Narjis",
+      "narjis"
+    ],
+    "branch_id": "ruh_narjis",
+    "delivery_fee_halalas": 500,
+    "eta_minutes": 20
+  },
+  {
+    "zone_id": "yasmin",
+    "name_ar": "الياسمين",
+    "aliases": [
+      "ياسمين",
+      "Yasmin",
+      "yasmin"
+    ],
+    "branch_id": "ruh_narjis",
+    "delivery_fee_halalas": 700,
+    "eta_minutes": 22
+  },
+  {
+    "zone_id": "sahafa",
+    "name_ar": "الصحافة",
+    "aliases": [
+      "صحافة",
+      "Sahafa",
+      "sahafa"
+    ],
+    "branch_id": "ruh_narjis",
+    "delivery_fee_halalas": 1200,
+    "eta_minutes": 35
+  },
+  {
+    "zone_id": "malqa",
+    "name_ar": "الملقا",
+    "aliases": [
+      "ملقا",
+      "Malqa",
+      "malqa"
+    ],
+    "branch_id": "ruh_malqa",
+    "delivery_fee_halalas": 500,
+    "eta_minutes": 20
+  },
+  {
+    "zone_id": "aqeeq",
+    "name_ar": "العقيق",
+    "aliases": [
+      "عقيق",
+      "Aqeeq",
+      "aqeeq"
+    ],
+    "branch_id": "ruh_malqa",
+    "delivery_fee_halalas": 900,
+    "eta_minutes": 28
+  },
+  {
+    "zone_id": "rawdah",
+    "name_ar": "الروضة",
+    "aliases": [
+      "روضة",
+      "Rawdah",
+      "rawdah"
+    ],
+    "branch_id": "jed_rawdah",
+    "delivery_fee_halalas": 500,
+    "eta_minutes": 20
+  },
+  {
+    "zone_id": "zahra",
+    "name_ar": "الزهراء",
+    "aliases": [
+      "زهراء",
+      "Zahra",
+      "zahra"
+    ],
+    "branch_id": "jed_rawdah",
+    "delivery_fee_halalas": 1000,
+    "eta_minutes": 30
+  },
+  {
+    "zone_id": "shati",
+    "name_ar": "الشاطئ",
+    "aliases": [
+      "شاطئ",
+      "Shati",
+      "shati"
+    ],
+    "branch_id": "jed_rawdah",
+    "delivery_fee_halalas": 1500,
+    "eta_minutes": 40
+  },
+  {
+    "zone_id": "salamah",
+    "name_ar": "السلامة",
+    "aliases": [
+      "سلامة",
+      "Salamah",
+      "salamah"
+    ],
+    "branch_id": "jed_rawdah",
+    "delivery_fee_halalas": 1300,
+    "eta_minutes": 35
+  }
+]

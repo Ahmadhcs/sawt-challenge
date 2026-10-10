@@ -1,0 +1,30 @@
+[
+  {
+    "branch_id": "ruh_olaya",
+    "name_ar": "العليا",
+    "name_en": "Olaya",
+    "city_ar": "الرياض",
+    "city_en": "Riyadh"
+  },
+  {
+    "branch_id": "ruh_narjis",
+    "name_ar": "النرجس",
+    "name_en": "Narjis",
+    "city_ar": "الرياض",
+    "city_en": "Riyadh"
+  },
+  {
+    "branch_id": "ruh_malqa",
+    "name_ar": "الملقا",
+    "name_en": "Malqa",
+    "city_ar": "الرياض",
+    "city_en": "Riyadh"
+  },
+  {
+    "branch_id": "jed_rawdah",
+    "name_ar": "الروضة",
+    "name_en": "Rawdah",
+    "city_ar": "جدة",
+    "city_en": "Jeddah"
+  }
+]

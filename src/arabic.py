@@ -24,6 +24,10 @@ def normalize_ar(text: str) -> str:
     return text
 
 
+def tokens(text: str) -> list[str]:
+    return [t for t in text.split(" ") if t]
+
+
 
 NAME_SYNONYMS: dict[str, str] = {
     "chicken": "دجاج",

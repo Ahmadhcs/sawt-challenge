@@ -5,7 +5,7 @@ from pathlib import Path
 
 from rapidfuzz import fuzz
 
-from .arabic import extract_keywords, normalize_ar
+from .arabic import extract_keywords, normalize_ar, tokens
 
 MENU_CSV_PATH = Path(__file__).parent.parent / "data" / "menu.csv"
 BRANCH_IDS = ["ruh_olaya", "ruh_narjis", "ruh_malqa", "jed_rawdah"]
@@ -165,12 +165,8 @@ def _starting_price_halalas(item: MenuItem) -> int:
     return total
 
 
-def _tokens(text: str) -> list[str]:
-    return [t for t in text.split(" ") if t]
-
-
 def _name_tokens(item: MenuItem) -> list[str]:
-    return _tokens(normalize_ar(f"{item.name_ar} {item.name_en}"))
+    return tokens(normalize_ar(f"{item.name_ar} {item.name_en}"))
 
 
 def _searchable_text(item: MenuItem) -> str:
@@ -189,7 +185,7 @@ def _token_coverage(query_tokens: list[str], target_tokens: list[str]) -> float:
 
 def search_menu(query: str, branch_id: str | None = None, limit: int = 5) -> list[MenuSearchResult]:
     search_text, detected_size, detected_options = extract_keywords(normalize_ar(query))
-    query_tokens = _tokens(search_text)
+    query_tokens = tokens(search_text)
     name_match_tokens = [t for t in query_tokens if not t.isdigit()]
 
     scored = []
