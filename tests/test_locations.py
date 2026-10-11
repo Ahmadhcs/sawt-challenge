@@ -43,3 +43,7 @@ def test_find_branch_by_branch_name():
 
 def test_find_branch_khobar_returns_none():
     assert find_branch("الخبر") is None
+
+
+def test_find_branch_ambiguous_city_returns_none():
+    assert find_branch("الرياض") is None

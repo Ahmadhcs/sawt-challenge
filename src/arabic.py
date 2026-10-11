@@ -29,40 +29,52 @@ def tokens(text: str) -> list[str]:
 
 
 
-NAME_SYNONYMS: dict[str, str] = {
-    "chicken": "دجاج",
-    "beef": "لحم",
-    "meat": "لحم",
-    "cheese": "جبن",
-    "مويه": "مياه",
-    "بطاطا": "بطاطس",
-}
+def _normalize_keys(mapping: dict[str, str]) -> dict[str, str]:
+    return {normalize_ar(key): value for key, value in mapping.items()}
 
 
-SIZE_KEYWORDS: dict[str, str] = {
-    "large": "large",
-    "كبير": "large",
-    "medium": "medium",
-    "وسط": "medium",
-    "small": "small",
-    "صغير": "small",
-}
+NAME_SYNONYMS: dict[str, str] = _normalize_keys(
+    {
+        "chicken": "دجاج",
+        "beef": "لحم",
+        "meat": "لحم",
+        "cheese": "جبن",
+        "مويه": "مياه",
+        "بطاطا": "بطاطس",
+    }
+)
 
 
-OPTION_KEYWORDS: dict[str, str] = {
-    "meal": "meal",
-    "combo": "meal",
-    "وجبة": "meal",
-    "spicy": "spicy",
-    "حار": "spicy",
-    "mild": "mild",
-    "خفيف": "mild",
-    "extra": "extra",
-    "اضافي": "extra",
-    "without": "without",
-    "no": "without",
-    "بدون": "without",
-}
+SIZE_KEYWORDS: dict[str, str] = _normalize_keys(
+    {
+        "large": "large",
+        "كبير": "large",
+        "كبيرة": "large",
+        "medium": "medium",
+        "وسط": "medium",
+        "small": "small",
+        "صغير": "small",
+        "صغيرة": "small",
+    }
+)
+
+
+OPTION_KEYWORDS: dict[str, str] = _normalize_keys(
+    {
+        "meal": "meal",
+        "combo": "meal",
+        "وجبة": "meal",
+        "spicy": "spicy",
+        "حار": "spicy",
+        "mild": "mild",
+        "خفيف": "mild",
+        "extra": "extra",
+        "اضافي": "extra",
+        "without": "without",
+        "no": "without",
+        "بدون": "without",
+    }
+)
 
 
 def extract_keywords(normalized_query: str) -> tuple[str, str | None, list[str]]:

@@ -73,16 +73,15 @@ def find_zone(location_text: str) -> Zone | None:
 
 
 def find_branch(text: str) -> Branch | None:
-    best_branch = None
-    best_score = 0.0
-    for branch in load_branches().values():
-        score = _best_location_match_score(text, [branch.name_ar, branch.name_en, branch.city_ar, branch.city_en])
-        if score > best_score:
-            best_score = score
-            best_branch = branch
+    scored = [
+        (_best_location_match_score(text, [b.name_ar, b.name_en, b.city_ar, b.city_en]), b)
+        for b in load_branches().values()
+    ]
+    best_score = max((score for score, _ in scored), default=0.0)
 
     if best_score >= LOCATION_SCORE_THRESHOLD:
-        return best_branch
+        matches = [branch for score, branch in scored if score == best_score]
+        return matches[0] if len(matches) == 1 else None
 
     zone = find_zone(text)
     return load_branches().get(zone.branch_id) if zone else None

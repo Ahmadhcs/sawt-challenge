@@ -101,6 +101,18 @@ def test_search_detects_size_and_option_hints():
     assert "meal" in results[0].detected_options
 
 
+def test_search_detects_feminine_size_form():
+    results = search_menu("بيتزا كبيرة")
+    assert results[0].item_id.startswith("pizza_flatbread_")
+    assert results[0].detected_size == "large"
+
+
+def test_search_detects_arabic_meal_keyword():
+    results = search_menu("برجر وجبة")
+    assert results[0].item_id.startswith("sandwiches_")
+    assert "meal" in results[0].detected_options
+
+
 def test_item_price_size_vs_same_named_option_in_other_group():
     assert item_price("pizza_flatbread_01", size="medium", option_ids=[]) == 4200
     assert item_price("pizza_flatbread_01", size="medium", option_ids=["medium"]) == 4200
