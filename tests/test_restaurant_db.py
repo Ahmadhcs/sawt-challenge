@@ -1,6 +1,6 @@
 from src.arabic import normalize_ar
 from src.restaurant_db import (
-    _starting_price_halalas,
+    starting_price_halalas,
     get_item,
     is_available,
     item_price,
@@ -125,7 +125,7 @@ def test_item_price_duplicate_option_ids_not_double_counted():
 
 def test_starting_price_is_base_plus_required_minimums():
     item = get_item("pizza_flatbread_01")
-    assert _starting_price_halalas(item) == 3200
+    assert starting_price_halalas(item) == 3200
 
 
 def test_search_ambiguous_true_on_near_tie():

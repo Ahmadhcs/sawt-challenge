@@ -154,7 +154,7 @@ class MenuSearchResult:
     ambiguous: bool
 
 
-def _starting_price_halalas(item: MenuItem) -> int:
+def starting_price_halalas(item: MenuItem) -> int:
     total = item.base_price_halalas
     for group in item.option_groups.values():
         if not group.required:
@@ -210,7 +210,7 @@ def search_menu(query: str, branch_id: str | None = None, limit: int = 5) -> lis
                 name_ar=item.name_ar,
                 name_en=item.name_en,
                 category_id=item.category_id,
-                starting_price_halalas=_starting_price_halalas(item),
+                starting_price_halalas=starting_price_halalas(item),
                 score=name_score,
                 available=item.availability.get(branch_id) if branch_id else None,
                 detected_size=detected_size,

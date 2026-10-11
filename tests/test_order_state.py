@@ -1,6 +1,6 @@
 import json
 
-from src.order_state import OrderState, _halalas_to_sar_str
+from src.order_state import OrderState, halalas_to_sar_str
 
 
 def test_add_line_computes_total_with_size_options_qty():
@@ -296,10 +296,10 @@ def test_changes_after_confirmation_rejected(tmp_path):
 
 
 def test_halalas_to_sar_str_formatting():
-    assert _halalas_to_sar_str(8750) == "87.50"
-    assert _halalas_to_sar_str(2200) == "22.00"
-    assert _halalas_to_sar_str(5) == "0.05"
-    assert _halalas_to_sar_str(0) == "0.00"
+    assert halalas_to_sar_str(8750) == "87.50"
+    assert halalas_to_sar_str(2200) == "22.00"
+    assert halalas_to_sar_str(5) == "0.05"
+    assert halalas_to_sar_str(0) == "0.00"
 
 
 def test_summary_includes_sar_display_strings():

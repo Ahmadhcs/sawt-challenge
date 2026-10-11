@@ -9,7 +9,7 @@ from .restaurant_db import SIZE_GROUP_IDS, MenuItem, get_item, is_available, ite
 ORDERS_JSON_PATH = Path(__file__).parent.parent / "orders.json"
 
 
-def _halalas_to_sar_str(halalas: int) -> str:
+def halalas_to_sar_str(halalas: int) -> str:
     sign = "-" if halalas < 0 else ""
     halalas = abs(halalas)
     return f"{sign}{halalas // 100}.{halalas % 100:02d}"
@@ -252,7 +252,7 @@ class OrderState:
                     "option_ids": line.option_ids,
                     "notes": line.notes,
                     "price_halalas": self.line_prices_halalas.get(line.line_id, 0),
-                    "line_total_sar": _halalas_to_sar_str(self.line_prices_halalas.get(line.line_id, 0)),
+                    "line_total_sar": halalas_to_sar_str(self.line_prices_halalas.get(line.line_id, 0)),
                     "unavailable": line.line_id in self.unavailable_line_ids,
                 }
             )
@@ -266,12 +266,12 @@ class OrderState:
             "branch_id": self.branch_id,
             "lines": lines_summary,
             "delivery_fee_halalas": self.delivery_fee_halalas,
-            "delivery_fee_sar": _halalas_to_sar_str(self.delivery_fee_halalas),
+            "delivery_fee_sar": halalas_to_sar_str(self.delivery_fee_halalas),
             "eta_minutes": self.eta_minutes,
             "subtotal_halalas": self.subtotal_halalas,
-            "subtotal_sar": _halalas_to_sar_str(self.subtotal_halalas),
+            "subtotal_sar": halalas_to_sar_str(self.subtotal_halalas),
             "total_halalas": self.total_halalas,
-            "total_sar": _halalas_to_sar_str(self.total_halalas),
+            "total_sar": halalas_to_sar_str(self.total_halalas),
             "version": self.version,
             "readback_version": self.readback_version,
         }
