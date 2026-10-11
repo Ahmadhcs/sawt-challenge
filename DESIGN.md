@@ -26,3 +26,111 @@ Sources:
 - Best LLMs for voice agents (https://benchlm.ai/best/voice-ai-agents)
 - ElevenLabs models reference, language/latency per model (https://elevenlabs.io/docs/models)
 
+
+## Architecture
+ 
+### Pipeline
+ 
+```mermaid
+flowchart LR
+    A[Mic or WAV] --> B[Scribe v2 STT]
+    B -- text + word confidence --> C[Agent: GPT-4.1]
+    C -- tool calls --> D[Tools]
+    D --> E[OrderState]
+    E --> F[(menu.csv, branches.json, zones.json)]
+    D -- result + order summary --> C
+    C -- reply text --> G[Flash v2.5 TTS]
+    G --> H[Speaker]
+```
+ 
+ ## Data
+ 
+**Menu (given).** 144 dishes, 12 categories, 1,728 rows. Each dish spans 8–15 rows, one per option, with the dish-level fields repeated. Two things in the CSV shaped the code:
+ 
+- `item_price_with_option_sar` looks like a final price but only reflects one option at a time. A large pizza with extra cheese needs the base price plus every selected options' deltas, so the code sums them itself.
+- Availability is per dish and per branch, while prices are the same at every branch. 111 dishes are available everywhere, the other 33 are missing at one or more branches. This is what makes the location changes after adding items scenario real.
+**Branches and delivery zones (mock).** The CSV only covers the menu, so I created:
+ 
+- `branches.json`: the 4 branch IDs from the CSV (3 in Riyadh, 1 in Jeddah), with Arabic names and a pickup prep time.
+- `zones.json`: 12 real neighborhoods (8 in Riyadh, 4 in Jeddah), each mapped to a branch with a delivery fee and ETA (20–40 min). Fees and ETAs vary on purpose so changes are visible in the demo. Any location outside these zones gets "we don't deliver there, would you like pickup?"
+All money is stored as integer halalas (SAR × 100), makes it easier to avoid floating point rounding errors.
+
+## Order state
+ 
+All order data lives in one `OrderState` object (`src/order_state.py`), split into three groups:
+ 
+- **Inputs**, what the caller told us: service type, delivery zone, pickup branch, and cart lines (item, quantity, size, options, notes).
+- **Derived**, what code calculates: branch, delivery fee, ETA, line prices, unavailable lines, subtotal, total.
+- **Bookkeeping:** version, read back version, order ID, status.
+Five rules keep the order correct:
+ 
+1. **Validate first, then change.** Every change method either rejects the input and changes nothing, or updates the input, increments `version`, and calls `recalculate()`. Validation is menu-aware: the item exists, a required size is given and valid, each option group's min/max selections are respected, and no unknown options slip through.
+2. **Rebuild, never patch.** `recalculate()` rebuilds every derived field from the inputs from scratch. Nothing is updated incrementally, so nothing can drift.
+3. **Flag, don't delete.** Items the current branch doesn't serve stay in the cart, flagged, so the agent can tell the caller and ask what to do. If no branch is chosen yet, availability is "unknown", not "unavailable".
+4. **No math in the LLM.** `summary()` includes ready made SAR strings (`total_sar: "87.50"`) computed in code, so the LLM only ever reads numbers, never computes them.
+5. **Safe confirmation.** `get_order_summary()` is the read back and records the current version. `confirm_order()` only succeeds if nothing changed since the read back, the service type and location or branch are set, the cart isn't empty, and nothing is flagged unavailable. Confirming twice returns the same order ID without writing a second record, and every change method refuses once the order is confirmed.
+
+```mermaid
+flowchart TD
+    A[Tool call] --> B{Input valid?}
+    B -- no --> C[Return error, nothing changes]
+    B -- yes --> D[Update the input field]
+    D --> E[version + 1]
+    E --> F["recalculate()"]
+    F --> G[Branch, fee, ETA]
+    F --> H[Line prices and unavailable flags]
+    F --> I[Subtotal and total]
+    G --> J[Return result and fresh summary]
+    H --> J
+    I --> J
+```
+
+## Customer journey
+ 
+```mermaid
+stateDiagram-v2
+    [*] --> Greeting
+    Greeting --> ServiceType: wants to order
+    Greeting --> Info: menu question
+    Info --> ServiceType: decides to order
+    ServiceType --> Location: delivery
+    ServiceType --> PickupBranch: pickup
+    Location --> BuildOrder: zone found (branch, fee, ETA)
+    Location --> ServiceType: out of zone, offer pickup
+    PickupBranch --> BuildOrder
+    BuildOrder --> ReadBack: caller is done
+    ReadBack --> Confirmed: clear yes and version matches
+    ReadBack --> BuildOrder: change an item
+    ReadBack --> Location: change address
+    BuildOrder --> ServiceType: switch delivery or pickup
+    BuildOrder --> Location: change address
+    Confirmed --> [*]
+    note right of Greeting: Complaint or human request goes to Transfer from any step
+```
+ 
+The steps aren't a fixed script. Nothing in the code directly says "you are now in step 3". The agent looks at what is missing from the order state  and asks for that.
+
+How a read back blocks a stale or duplicate confirmation:
+ 
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant A as Agent
+    participant O as OrderState
+    A->>O: get_order_summary (version 3)
+    Note over O: readback_version = 3
+    A->>C: reads back the total
+    C->>A: "شيل البيبسي"
+    A->>O: remove_line (version 4)
+    A->>O: confirm_order
+    O-->>A: rejected, changed since read-back
+    A->>O: get_order_summary
+    Note over O: readback_version = 4
+    A->>C: reads back the new total
+    C->>A: "ايه"
+    A->>O: confirm_order
+    O-->>A: order 482713
+    C->>A: "ايه" again
+    A->>O: confirm_order
+    O-->>A: same order 482713, no second record
+```
