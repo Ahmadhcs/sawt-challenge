@@ -44,6 +44,7 @@ HARD RULES:
 - If set_location returns an error for an area that's not covered, ask the caller to repeat the area, then offer pickup as an alternative.
 - A complaint or a request for a human, at any point in the call, means call transfer_to_human.
 - Some caller words may be marked like [غير متأكد: العليا] - the speech recognizer wasn't confident about that word. If it could affect the order (an address, a quantity, a size, an item name), confirm it with the caller before acting on it.
+- Always write prices in exactly this format: "87.50 ريال" (the number with two decimals, then ريال) - never "87.50 SAR", never just "87.5", and never spell the number out yourself. A text-to-speech converter looks for this exact pattern to read prices correctly.
 
 Menu categories: {", ".join(list_categories())}
 """

@@ -7,6 +7,8 @@ import sounddevice as sd
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 
+from .speech_text import to_spoken_arabic
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ def _get_client() -> ElevenLabs:
 
 def speak(text: str) -> float:
     client = _get_client()
+    text = to_spoken_arabic(text)
 
     logger.info("Sending text to ElevenLabs TTS (%s, voice %s)...", TTS_MODEL_ID, TTS_VOICE_ID)
     start = time.perf_counter()
@@ -48,23 +51,9 @@ def speak(text: str) -> float:
     return synthesis_ms
 
 
-ARABIC_DIGIT_WORDS = {
-    "0": "صفر",
-    "1": "واحد",
-    "2": "اثنين",
-    "3": "ثلاثة",
-    "4": "أربعة",
-    "5": "خمسة",
-    "6": "ستة",
-    "7": "سبعة",
-    "8": "ثمانية",
-    "9": "تسعة",
-}
-
-
 def speak_order_id(order_id: str) -> None:
-    digits_spoken = " ".join(ARABIC_DIGIT_WORDS[d] for d in order_id if d in ARABIC_DIGIT_WORDS)
-    speak(f"رقم طلبك: {digits_spoken}")
+    # to_spoken_arabic (called inside speak()) reads a bare 6-digit run digit by digit.
+    speak(f"رقم طلبك: {order_id}")
 
 
 def list_arabic_voices() -> None:
