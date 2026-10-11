@@ -134,3 +134,19 @@ sequenceDiagram
     A->>O: confirm_order
     O-->>A: same order 482713, no second record
 ```
+
+
+## Architecture questions
+
+**Is this one agent, multiple agents, a state machine, a graph, or a hybrid?**
+
+I decided to go with a hybrid. One LLM agent on top of the state object owned by the code. One agent because a single phone call doesn't need handoffs between AIs, which could introduce latency and more places for data to possibly get lost. The state machine is also not hard coded, callers tend to jump around, so the LLM handles the conversation while the code handles correctness. 
+
+**What controls movement between steps?**
+The order state controls it. The next step is whatever is still missing, like service type, location or branch, and items, so there is no step counter to get out of sync. Hard rules are enforced in code, not the prompt: `confirm_order` refuses without a matching read back, a location, and an available cart.
+
+**What data moves between steps, and what stays behind?**
+The order state moves forward: inputs, derived values and version. The agent gets a fresh compact summary every turn. What stays behind: the full menu, raw audio, old search results and old tool outputs. 
+
+**How do you prevent stale data after the caller changes an earlier answer?**
+Inputs and derived values are separate, and `recalculate()` rebuilds every derived value from the inputs after every change. Any change bumps the version which invalidates the last read back.
