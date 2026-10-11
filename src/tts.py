@@ -36,14 +36,35 @@ def speak(text: str) -> float:
         output_format=f"pcm_{SAMPLE_RATE}",
     )
     audio_bytes = b"".join(audio_chunks)
-    time_to_first_audio_ms = (time.perf_counter() - start) * 1000
-    logger.info("Received %d bytes of audio in %.0fms. Playing...", len(audio_bytes), time_to_first_audio_ms)
+    # This is the full synthesis time (all chunks collected before playback
+    # starts), not time-to-first-byte - we don't stream playback.
+    synthesis_ms = (time.perf_counter() - start) * 1000
+    logger.info("Received %d bytes of audio in %.0fms. Playing...", len(audio_bytes), synthesis_ms)
 
     samples = np.frombuffer(audio_bytes, dtype=np.int16)
     sd.play(samples, samplerate=SAMPLE_RATE)
     sd.wait()
 
-    return time_to_first_audio_ms
+    return synthesis_ms
+
+
+ARABIC_DIGIT_WORDS = {
+    "0": "صفر",
+    "1": "واحد",
+    "2": "اثنين",
+    "3": "ثلاثة",
+    "4": "أربعة",
+    "5": "خمسة",
+    "6": "ستة",
+    "7": "سبعة",
+    "8": "ثمانية",
+    "9": "تسعة",
+}
+
+
+def speak_order_id(order_id: str) -> None:
+    digits_spoken = " ".join(ARABIC_DIGIT_WORDS[d] for d in order_id if d in ARABIC_DIGIT_WORDS)
+    speak(f"رقم طلبك: {digits_spoken}")
 
 
 def list_arabic_voices() -> None:

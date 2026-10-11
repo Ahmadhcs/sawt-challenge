@@ -4,6 +4,7 @@ import os
 import time
 from dataclasses import dataclass, field
 
+import openai
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -16,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 MODEL_ID = os.getenv("OPENAI_MODEL_ID", "gpt-4.1")
 MAX_TOOL_ROUNDS = 5
+MAX_HISTORY_TURNS = 10
+REQUEST_TIMEOUT_SECONDS = 10.0
 APOLOGY_TEXT = "عذرًا، واجهت مشكلة في معالجة طلبك، ممكن تعيد كلامك؟"
+TRANSFER_APOLOGY_TEXT = "عذرًا، عندي مشكلة تقنية متكررة. بحولك لموظف خدمة العملاء."
 
 SYSTEM_PROMPT = f"""ROLE: You are a phone order agent for a Saudi restaurant. Reply in short, natural Saudi Arabic - one or two sentences per reply, like a real phone call.
 
@@ -39,6 +43,7 @@ HARD RULES:
 - If a line is flagged unavailable, tell the caller and ask what they'd like to do about it.
 - If set_location returns an error for an area that's not covered, ask the caller to repeat the area, then offer pickup as an alternative.
 - A complaint or a request for a human, at any point in the call, means call transfer_to_human.
+- Some caller words may be marked like [غير متأكد: العليا] - the speech recognizer wasn't confident about that word. If it could affect the order (an address, a quantity, a size, an item name), confirm it with the caller before acting on it.
 
 Menu categories: {", ".join(list_categories())}
 """
@@ -55,6 +60,7 @@ class ToolCallRecord:
 class AgentReply:
     text: str
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
+    total_ms: float = 0.0
 
 
 def _get_client() -> OpenAI:
@@ -64,6 +70,22 @@ def _get_client() -> OpenAI:
     return OpenAI(api_key=api_key)
 
 
+def _trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
+    turns_only = [m for m in history if m.get("role") in ("user", "assistant")]
+    return turns_only[-(MAX_HISTORY_TURNS * 2) :]
+
+
+def _call_llm_with_retry(client: OpenAI, messages: list[dict], tools: list[dict]):
+    for attempt in range(2):
+        try:
+            return client.chat.completions.create(
+                model=MODEL_ID, messages=messages, tools=tools, timeout=REQUEST_TIMEOUT_SECONDS
+            )
+        except openai.APITimeoutError:
+            logger.warning("OpenAI call timed out (attempt %d of 2).", attempt + 1)
+    return None
+
+
 def respond(session: CallSession, history: list[dict[str, str]], user_text: str) -> AgentReply:
     client = _get_client()
     tool_schemas = get_openai_tool_schemas()
@@ -71,7 +93,7 @@ def respond(session: CallSession, history: list[dict[str, str]], user_text: str)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": f"Current order state: {json.dumps(llm_summary(session.order), ensure_ascii=False)}"},
-        *history,
+        *_trim_history(history),
         {"role": "user", "content": user_text},
     ]
 
@@ -80,13 +102,23 @@ def respond(session: CallSession, history: list[dict[str, str]], user_text: str)
 
     start = time.perf_counter()
     for _round in range(MAX_TOOL_ROUNDS):
-        response = client.chat.completions.create(model=MODEL_ID, messages=messages, tools=tool_schemas)
+        response = _call_llm_with_retry(client, messages, tool_schemas)
+        if response is None:
+            total_ms = (time.perf_counter() - start) * 1000
+            session.consecutive_failures += 1
+            if session.consecutive_failures >= 2:
+                session.transferred = True
+                session.transfer_reason = "repeated technical failure reaching the assistant"
+                return AgentReply(text=TRANSFER_APOLOGY_TEXT, tool_calls=tool_call_records, total_ms=total_ms)
+            return AgentReply(text=APOLOGY_TEXT, tool_calls=tool_call_records, total_ms=total_ms)
+
         message = response.choices[0].message
 
         if not message.tool_calls:
+            session.consecutive_failures = 0
             total_ms = (time.perf_counter() - start) * 1000
             logger.info("LLM turn finished in %.0fms with %d tool call(s).", total_ms, len(tool_call_records))
-            return AgentReply(text=message.content or "", tool_calls=tool_call_records)
+            return AgentReply(text=message.content or "", tool_calls=tool_call_records, total_ms=total_ms)
 
         messages.append(
             {
@@ -119,4 +151,4 @@ def respond(session: CallSession, history: list[dict[str, str]], user_text: str)
             )
 
     logger.info("Hit MAX_TOOL_ROUNDS (%d) without a final reply.", MAX_TOOL_ROUNDS)
-    return AgentReply(text=APOLOGY_TEXT, tool_calls=tool_call_records)
+    return AgentReply(text=APOLOGY_TEXT, tool_calls=tool_call_records, total_ms=(time.perf_counter() - start) * 1000)

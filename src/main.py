@@ -1,12 +1,34 @@
 import argparse
 import json
 import logging
+import time
 
 from .agent import ToolCallRecord, respond
+from .locations import load_branches, load_zones
 from .order_state import OrderState
-from .stt import load_wav, record_from_mic, transcribe
+from .restaurant_db import load_menu
+from .stt import load_wav, mark_low_confidence, record_from_mic, transcribe
 from .tools import CallSession
-from .tts import speak
+from .tts import speak, speak_order_id
+
+MAX_KEYTERMS = 100
+
+
+def _build_keyterms() -> list[str]:
+    zone_names = [z.name_ar for z in load_zones()]
+    branch_names = [b.name_ar for b in load_branches().values()]
+
+    category_names = []
+    dish_names = []
+    seen_categories = set()
+    for item in load_menu().values():
+        if item.category_id not in seen_categories:
+            seen_categories.add(item.category_id)
+            category_names.append(item.category_ar)
+        dish_names.append(item.name_ar)
+
+    keyterms = zone_names + branch_names + category_names + dish_names
+    return keyterms[:MAX_KEYTERMS]
 
 
 def _print_tool_call(record: ToolCallRecord) -> None:
@@ -15,8 +37,12 @@ def _print_tool_call(record: ToolCallRecord) -> None:
     print(f"  TOOL {record.name}({args_json}) -> {result_json}")
 
 
-def _run_turn(session: CallSession, history: list[dict[str, str]], user_text: str, speak_reply: bool) -> bool:
+def _run_turn(
+    session: CallSession, history: list[dict[str, str]], user_text: str, speak_reply: bool, stt_ms: float
+) -> bool:
     """Runs one turn. Returns False when the call should end."""
+    turn_start = time.perf_counter()
+
     reply = respond(session, history, user_text)
 
     for record in reply.tool_calls:
@@ -28,10 +54,17 @@ def _run_turn(session: CallSession, history: list[dict[str, str]], user_text: st
     history.append({"role": "user", "content": user_text})
     history.append({"role": "assistant", "content": reply.text})
 
-    if speak_reply:
-        speak(reply.text)
+    tts_ms = speak(reply.text) if speak_reply else 0.0
+    confirmed = session.order.status == "confirmed"
+    if confirmed and speak_reply:
+        speak_order_id(session.order.order_id)
 
-    return not (session.order.status == "confirmed" or session.transferred)
+    turn_ms = (time.perf_counter() - turn_start) * 1000
+    print(
+        f"Timings (ms): STT={stt_ms:.0f} LLM_total={reply.total_ms:.0f} TTS={tts_ms:.0f} Turn={turn_ms:.0f}"
+    )
+
+    return not (confirmed or session.transferred)
 
 
 def main() -> None:
@@ -44,19 +77,23 @@ def main() -> None:
     session = CallSession(order=OrderState())
     history: list[dict[str, str]] = []
     speak_reply = (not args.text) or args.speak
+    keyterms = _build_keyterms()
 
     try:
         while True:
+            stt_ms = 0.0
             if args.text:
                 user_text = input()
-            elif args.wav:
-                user_text = transcribe(load_wav(args.wav)).text
             else:
-                user_text = transcribe(record_from_mic()).text
+                audio_bytes = load_wav(args.wav) if args.wav else record_from_mic()
+                stt_start = time.perf_counter()
+                result = transcribe(audio_bytes, keyterms=keyterms)
+                stt_ms = (time.perf_counter() - stt_start) * 1000
+                user_text = mark_low_confidence(result)
 
             print(f"You: {user_text}")
 
-            keep_going = _run_turn(session, history, user_text, speak_reply)
+            keep_going = _run_turn(session, history, user_text, speak_reply, stt_ms)
             print()
 
             if not keep_going or args.wav:

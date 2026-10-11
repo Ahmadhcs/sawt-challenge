@@ -17,6 +17,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
+LOW_CONFIDENCE_THRESHOLD = 0.6
 
 
 @dataclass
@@ -106,3 +107,11 @@ def transcribe(audio_bytes: bytes, keyterms: list[str] | None = None) -> Transcr
         if w.type == "word" and w.logprob is not None
     ]
     return TranscriptionResult(text=response.text, words=words)
+
+
+def mark_low_confidence(result: TranscriptionResult) -> str:
+    if not result.words:
+        return result.text
+    return " ".join(
+        f"[غير متأكد: {w.text}]" if w.confidence < LOW_CONFIDENCE_THRESHOLD else w.text for w in result.words
+    )

@@ -17,6 +17,7 @@ class CallSession:
     order: OrderState
     transferred: bool = False
     transfer_reason: str | None = None
+    consecutive_failures: int = 0
 
 
 def llm_summary(order: OrderState) -> dict:
