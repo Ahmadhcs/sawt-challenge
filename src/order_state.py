@@ -57,6 +57,7 @@ class OrderState:
     # bookkeeping
     version: int = 0
     readback_version: int | None = None
+    readback_turn: int | None = None
     order_id: str | None = None
     status: str = "building"
     next_line_number: int = 0
@@ -276,14 +277,20 @@ class OrderState:
             "readback_version": self.readback_version,
         }
 
-    def get_order_summary(self) -> dict:
+    def get_order_summary(self, turn_number: int) -> dict:
         self.readback_version = self.version
+        self.readback_turn = turn_number
         return self.summary()
 
-    def confirm_order(self, orders_path: Path | str = ORDERS_JSON_PATH) -> ConfirmResult:
+    def confirm_order(self, turn_number: int, orders_path: Path | str = ORDERS_JSON_PATH) -> ConfirmResult:
         if self.status == "confirmed":
             return ConfirmResult(order_id=self.order_id, error=None)
 
+        if self.readback_turn is None or self.readback_turn == turn_number:
+            return ConfirmResult(
+                order_id=None,
+                error="read the order back to the caller and wait for their answer before confirming",
+            )
         if self.readback_version is None or self.readback_version != self.version:
             return ConfirmResult(order_id=None, error="please read back the order before confirming")
         if self.service_type is None:

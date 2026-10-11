@@ -169,6 +169,7 @@ def test_confirm_order_tool_full_flow():
     run_tool(session, "set_location", {"location_text": "النرجس"})
     run_tool(session, "add_item", {"item_id": "breakfast_01", "qty": 1, "size": "regular", "option_ids": ["tamees"]})
     run_tool(session, "get_order_summary", {})
+    session.turn_number += 1
 
     result = run_tool(session, "confirm_order", {})
     assert result["ok"] is True

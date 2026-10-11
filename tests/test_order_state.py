@@ -229,7 +229,7 @@ def _ready_order() -> OrderState:
 
 def test_confirm_without_readback_fails(tmp_path):
     order = _ready_order()
-    result = order.confirm_order(orders_path=tmp_path / "orders.json")
+    result = order.confirm_order(turn_number=1, orders_path=tmp_path / "orders.json")
     assert result.order_id is None
     assert result.error is not None
     assert order.status == "building"
@@ -237,15 +237,15 @@ def test_confirm_without_readback_fails(tmp_path):
 
 def test_change_after_readback_requires_new_readback(tmp_path):
     order = _ready_order()
-    order.get_order_summary()
+    order.get_order_summary(turn_number=1)
     order.add_line("appetizers_01", qty=1, size="regular", option_ids=["not_spicy"])
 
-    result = order.confirm_order(orders_path=tmp_path / "orders.json")
+    result = order.confirm_order(turn_number=2, orders_path=tmp_path / "orders.json")
     assert result.order_id is None
     assert result.error is not None
 
-    order.get_order_summary()
-    result = order.confirm_order(orders_path=tmp_path / "orders.json")
+    order.get_order_summary(turn_number=3)
+    result = order.confirm_order(turn_number=4, orders_path=tmp_path / "orders.json")
     assert result.error is None
     assert result.order_id is not None
 
@@ -253,13 +253,13 @@ def test_change_after_readback_requires_new_readback(tmp_path):
 def test_double_confirm_same_id_and_one_record(tmp_path):
     orders_path = tmp_path / "orders.json"
     order = _ready_order()
-    order.get_order_summary()
+    order.get_order_summary(turn_number=1)
 
-    first = order.confirm_order(orders_path=orders_path)
+    first = order.confirm_order(turn_number=2, orders_path=orders_path)
     assert first.error is None
     assert first.order_id is not None
 
-    second = order.confirm_order(orders_path=orders_path)
+    second = order.confirm_order(turn_number=3, orders_path=orders_path)
     assert second.error is None
     assert second.order_id == first.order_id
 
@@ -274,9 +274,9 @@ def test_confirm_blocked_when_item_unavailable(tmp_path):
     order.set_location("النرجس")
     order.add_line("appetizers_02", qty=1, size="regular", option_ids=["not_spicy"])
     order.set_location("الزهراء")
-    order.get_order_summary()
+    order.get_order_summary(turn_number=1)
 
-    result = order.confirm_order(orders_path=tmp_path / "orders.json")
+    result = order.confirm_order(turn_number=2, orders_path=tmp_path / "orders.json")
     assert result.order_id is None
     assert "unavailable" in result.error
     assert order.status == "building"
@@ -284,8 +284,8 @@ def test_confirm_blocked_when_item_unavailable(tmp_path):
 
 def test_changes_after_confirmation_rejected(tmp_path):
     order = _ready_order()
-    order.get_order_summary()
-    order.confirm_order(orders_path=tmp_path / "orders.json")
+    order.get_order_summary(turn_number=1)
+    order.confirm_order(turn_number=2, orders_path=tmp_path / "orders.json")
     assert order.status == "confirmed"
     version_before = order.version
 
@@ -293,6 +293,43 @@ def test_changes_after_confirmation_rejected(tmp_path):
     assert error is not None
     assert order.version == version_before
     assert len(order.lines) == 1
+
+
+def test_confirm_same_turn_as_readback_fails(tmp_path):
+    order = _ready_order()
+    order.get_order_summary(turn_number=1)
+
+    result = order.confirm_order(turn_number=1, orders_path=tmp_path / "orders.json")
+    assert result.order_id is None
+    assert "wait for their answer" in result.error
+    assert order.status == "building"
+
+
+def test_confirm_next_turn_after_readback_succeeds(tmp_path):
+    order = _ready_order()
+    order.get_order_summary(turn_number=1)
+
+    result = order.confirm_order(turn_number=2, orders_path=tmp_path / "orders.json")
+    assert result.error is None
+    assert result.order_id is not None
+    assert order.status == "confirmed"
+
+
+def test_idempotent_confirm_after_turn_fix_still_same_id(tmp_path):
+    orders_path = tmp_path / "orders.json"
+    order = _ready_order()
+    order.get_order_summary(turn_number=1)
+
+    first = order.confirm_order(turn_number=2, orders_path=orders_path)
+    assert first.error is None
+
+    second = order.confirm_order(turn_number=1, orders_path=orders_path)
+    assert second.error is None
+    assert second.order_id == first.order_id
+
+    with open(orders_path, encoding="utf-8") as f:
+        records = json.load(f)
+    assert len(records) == 1
 
 
 def test_halalas_to_sar_str_formatting():

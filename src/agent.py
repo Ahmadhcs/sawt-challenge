@@ -88,6 +88,7 @@ def _call_llm_with_retry(client: OpenAI, messages: list[dict], tools: list[dict]
 
 
 def respond(session: CallSession, history: list[dict[str, str]], user_text: str) -> AgentReply:
+    session.turn_number += 1
     client = _get_client()
     tool_schemas = get_openai_tool_schemas()
 

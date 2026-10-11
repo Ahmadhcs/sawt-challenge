@@ -1,12 +1,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 from rapidfuzz import fuzz
 
 from .arabic import normalize_ar, tokens
-from .order_state import OrderState, halalas_to_sar_str
+from .order_state import ORDERS_JSON_PATH, OrderState, halalas_to_sar_str
 from .restaurant_db import get_item, list_categories, list_category, load_menu, search_menu, starting_price_halalas
 
 CATEGORY_SCORE_THRESHOLD = 75
@@ -18,6 +19,8 @@ class CallSession:
     transferred: bool = False
     transfer_reason: str | None = None
     consecutive_failures: int = 0
+    orders_path: Path = ORDERS_JSON_PATH
+    turn_number: int = 0
 
 
 def llm_summary(order: OrderState) -> dict:
@@ -217,7 +220,7 @@ class GetOrderSummaryArgs(BaseModel):
 
 
 def _handle_get_order_summary(session: CallSession, args: GetOrderSummaryArgs) -> dict:
-    session.order.get_order_summary()
+    session.order.get_order_summary(session.turn_number)
     return _success_with_summary(session.order)
 
 
@@ -226,7 +229,7 @@ class ConfirmOrderArgs(BaseModel):
 
 
 def _handle_confirm_order(session: CallSession, args: ConfirmOrderArgs) -> dict:
-    result = session.order.confirm_order()
+    result = session.order.confirm_order(session.turn_number, orders_path=session.orders_path)
     if result.error:
         return {"ok": False, "error": result.error}
     return _success_with_summary(session.order, {"order_id": result.order_id})
